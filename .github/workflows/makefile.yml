@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: darodrig/devimage
+    runs-on: debian:latest
 
     steps:
     - uses: actions/checkout@v2
