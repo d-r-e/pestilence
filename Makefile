@@ -49,7 +49,7 @@ commit: add
 	git commit -m "pestilence"
 push: commit
 	git pull
-	git push origin main
+	git push
 deps:
 	sudo apt-get install -yq $(DEPS)
 
