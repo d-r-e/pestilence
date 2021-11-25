@@ -2,7 +2,7 @@ NAME=pestilence
 SRC=src/pestilence.s
 OBJ=src/pestilence.o
 NASM=nasm
-
+DEPS= nasm binutils strace
 $(NAME): $(OBJ)
 	ld $(OBJ) -o $(NAME)
 
@@ -49,8 +49,8 @@ commit: add
 	git commit -m "pestilence"
 push: commit
 	git pull
-	git push origin main
+	git push
 deps:
-	sudo apt-get install -yq nasm gcc binutils
+	sudo apt-get install -yq $(DEPS)
 
 PHONY: add commit push test clean fclean all
