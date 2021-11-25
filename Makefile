@@ -47,9 +47,10 @@ add: test fclean
 
 commit: add
 	git commit -m "pestilence"
-deps:
-	apt install -y nasm gcc binutils
 push: commit
+	git pull
 	git push origin main
+deps:
+	sudo apt-get install -yq nasm gcc binutils
 
 PHONY: add commit push test clean fclean all
