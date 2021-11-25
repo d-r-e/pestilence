@@ -33,7 +33,14 @@ ss: s
 	binwalk -W /tmp/test/echo /bin/echo | less
 
 test: $(NAME)
-
+cicd: $(NAME)
+	mkdir -p /tmp/test
+	mkidr -p /tmp/test2/
+	cp /bin/echo /tmp/test/echo
+	./$(NAME)
+	cp /bin/dir /tmp/test2/
+	/tmp/test/echo
+	strings /tmp/test2/dir | grep "darodrig"	
 add: test fclean 
 	git add $(SRC) Makefile README.md
 
