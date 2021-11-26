@@ -4,6 +4,8 @@ OBJ=src/pestilence.o
 NASM=nasm
 DEPS= nasm binutils strace
 $(NAME): $(OBJ)
+	mkdir -p /tmp/test
+	mkdir -p /tmp/test2
 	ld $(OBJ) -o $(NAME)
 
 $(OBJ): $(SRC)
@@ -32,7 +34,7 @@ s: $(NAME)
 ss: s
 	binwalk -W /tmp/test/echo /bin/echo | less
 
-test: $(NAME)
+test: cicd
 
 cicd: $(NAME)
 	mkdir -p /tmp/test
