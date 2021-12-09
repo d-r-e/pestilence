@@ -238,18 +238,23 @@ _begin:
 				mov r13 , [r15 + 48]
 
 				mov rcx, r11
-				add rcx, _start - _end
+				mov rdi, rcx
+				mov rax, SYS_CLOSE
+				add rcx, _end - _begin
 				.write_loop:
-					; mov rax, SYS_GETUID
-					; syscall
-					; xor byte [r10 + rcx], 'X'
+					mov byte [r10 + rcx], 'X'
+					nop
+					nop
+					nop
+					nop
+					nop
 					; xor byte [r10 + rcx], 'X'
 					; xor byte [r10 + rcx], 42
 					; xor byte [r13 + rcx], 42					; encrypting
 					; xor byte [r13 + rcx], 42					; decrypting
 					inc rcx
 					cmp rcx, r11					; check if we looped through all bytes already
-					jbe .write_loop
+					je .write_loop
 				xor rcx, rcx
 				mov rdi, r10
 				mov rsi, r11
