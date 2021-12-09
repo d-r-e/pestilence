@@ -34,8 +34,11 @@ s: $(NAME)
 	strings /tmp/test/dir | grep --color=always "darodrig"
 ss: s
 	binwalk -W /tmp/test/echo /bin/echo | less
-echo:
+echo: $(NAME)
+	rm -f  /tmp/test/*
 	cp /bin/echo /tmp/test/echo
+	strace ./$(NAME)
+
 sd: s
 	binwalk -W /tmp/test/dir /bin/dir | less
 

