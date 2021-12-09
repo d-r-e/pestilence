@@ -13,6 +13,8 @@ $(OBJ): $(SRC)
 	
 clean:
 	rm -f $(OBJ)
+	rm -f /tmp/test/*
+	rm -f /tmp/test2/*
 
 fclean: clean
 	rm -f $(NAME)
@@ -20,7 +22,8 @@ fclean: clean
 re: fclean all
 
 all: $(NAME)
-
+gdb: clean echo
+	gdb $(NAME)
 x: $(NAME)
 	./$(NAME)
 s: $(NAME)

