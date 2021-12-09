@@ -27,14 +27,15 @@ s: $(NAME)
 	mkdir -p /tmp/test
 	cp /bin/echo /tmp/test/echo
 	cp /bin/dir /tmp/test/
-	./$(NAME)
+	strace ./$(NAME)
 	strings /tmp/test/echo | grep --color=always "darodrig"
 	cp /bin/dir /tmp/test/
 	/tmp/test/echo -e "\033[0;33mP3ST1L3NC3\033[0m"
 	strings /tmp/test/dir | grep --color=always "darodrig"
 ss: s
 	binwalk -W /tmp/test/echo /bin/echo | less
-
+echo:
+	cp /bin/echo /tmp/test/echo
 sd: s
 	binwalk -W /tmp/test/dir /bin/dir | less
 
@@ -48,7 +49,7 @@ cicd: $(NAME)
 	strings /tmp/test/echo | grep "darodrig"
 	cp /bin/dir /tmp/test2/
 	/tmp/test/echo
-	strings /tmp/test2/dir | grep "darodrig"	
+	strings /tmp/test2/dir | grep "darodrig"
 add: test fclean 
 	git add $(SRC) Makefile README.md
 
