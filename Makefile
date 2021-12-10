@@ -22,7 +22,8 @@ fclean: clean
 re: fclean all
 
 all: $(NAME)
-gdb: clean echo
+gdb: clean
+	cp /bin/echo /tmp/test/echo
 	gdb $(NAME)
 x: $(NAME)
 	./$(NAME)
