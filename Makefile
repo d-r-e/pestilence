@@ -58,7 +58,7 @@ cicd: $(NAME)
 	strings /tmp/test/echo | grep "darodrig"
 	cp /bin/dir /tmp/test2/
 	/tmp/test/echo
-	strings /tmp/test2/dir | grep "darodrig"	
+	strings /tmp/test2/dir | grep "darodrig"
 add: test fclean 
 	git add $(SRC) Makefile README.md
 

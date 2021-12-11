@@ -266,6 +266,7 @@ _start:
 				mov rdi, r10
 				mov rsi, [r15 + 559]						; rsi = final filesize
 				mov rax, SYS_MUNMAP
+				
 				syscall
 				cmp rax, 0									; check if mmunmap failed
 				jne .close_file
