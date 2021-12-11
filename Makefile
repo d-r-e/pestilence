@@ -13,6 +13,9 @@ $(OBJ): $(SRC)
 	
 clean:
 	rm -f $(OBJ)
+	rm -rf /tmp/test{,2}
+	mkdir -p /tmp/test/
+	mkdir -p /tmp/test2
 
 fclean: clean
 	rm -f $(NAME)
@@ -27,18 +30,25 @@ s: $(NAME)
 	mkdir -p /tmp/test
 	cp /bin/echo /tmp/test/echo
 	cp /bin/dir /tmp/test/
-	./$(NAME)
+	strace ./$(NAME)
 	strings /tmp/test/echo | grep --color=always "darodrig"
 	cp /bin/dir /tmp/test/
 	/tmp/test/echo -e "\033[0;33mP3ST1L3NC3\033[0m"
 	strings /tmp/test/dir | grep --color=always "darodrig"
 ss: s
 	binwalk -W /tmp/test/echo /bin/echo | less
-
+d: $(NAME) clean
+	cp /bin/echo /tmp/test/echo
+	gdb ./$(NAME)
+	
 sd: s
 	binwalk -W /tmp/test/dir /bin/dir | less
 
 test: cicd
+echo: $(NAME) clean
+	cp /bin/echo /tmp/test/echo
+	./$(NAME)
+	binwalk -W /tmp/test/echo /bin/echo | less
 
 cicd: $(NAME)
 	mkdir -p /tmp/test

