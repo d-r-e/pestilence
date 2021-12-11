@@ -256,7 +256,7 @@ _start:
 					cmp r11, r13					; check if we reached final filesize
 					je .endloop
 					xor byte[r10 + r11], 42
-					xor byte[r10 + r11], 42
+					xor byte[r10 + r11], 42			; if done twice, it reverses the encryption
 					; xor byte[r10 + r11], 42
 					; xor byte[r10 + r11], 42
 					; xor byte[r10 + r11], 42
