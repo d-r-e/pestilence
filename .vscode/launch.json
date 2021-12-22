@@ -39,7 +39,7 @@
             "request": "launch",
             "name": "GDB64+GCC",
             "program": "${fileDirname}/${fileBasenameNoExtension}",
-            "stopOnEntry": false,
+            "stopOnEntry": true,
             "preLaunchTask": "asm64+gcc"
         }
     ]
