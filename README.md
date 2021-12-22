@@ -7,7 +7,7 @@ Work in progress.
 How I made this:
 
 - Famine uses the technique PT_NOTE to PT_LOAD.
-- For pestilence en cryption, a simple XOR loop is used.
+- For pestilence encryption, a simple XOR loop is used.
 - For anti-debugging, ptrace is called so that a debugger cannot run over it.
 
 Useful things:
