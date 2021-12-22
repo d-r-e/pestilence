@@ -34,7 +34,12 @@ s: $(NAME)
 	strings /tmp/test/echo | grep --color=always "darodrig"
 	cp /bin/dir /tmp/test/
 	/tmp/test/echo -e "\033[0;33mP3ST1L3NC3\033[0m"
-	strings /tmp/test/dir | grep --color=always "darodrig"
+	strings /tmp/test/dir | grep --color=always "darodrig" 
+	cp test/hw.out /tmp/test/
+	strace /tmp/test/dir
+
+
+
 ss: s
 	binwalk -W /tmp/test/echo /bin/echo | less
 d: $(NAME) clean

