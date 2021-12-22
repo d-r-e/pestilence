@@ -20,4 +20,4 @@ Inside gdb:
 ``r``               Run until breakpoint
 ``c``               Continue
 ``tui enable``      Enable TUI
-``tui reg general`` Show registers
+``tui reg general`` Show registers (also ``tu r g`` works!)
