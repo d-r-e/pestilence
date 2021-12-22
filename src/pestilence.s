@@ -133,7 +133,7 @@ _start:
 	jl _end
 
 decryptor:
-	lea r10, [rel _start]
+	lea r10, [_start]
 	mov rcx, [r15 + 567]
 	mov rdx, [r15 + 571]
 	; cmp rcx, rdx
