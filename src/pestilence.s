@@ -45,7 +45,6 @@
 %define PF_R	4
 %define PF_W	2
 section .text
-    extern printf
     global _start
 
 _start:
@@ -53,29 +52,29 @@ _start:
     push rsp
     sub rsp, 3000
     mov r15, rsp ; r15 = stack pointer
-    push "Hello\n"
-    pop rdi
-    call strlen
-    cmp rax, 6
-    jne _end
+    
+    call hello_world
+    jmp cleanup
+    write:
+        ; rdi = fd
+        ; rsi = buffer
+        ; rdx = size
+        ; rcx = ret to
 
-strlen:
-    xor rax, rax
-    pop rdi
-    xor rcx, rcx
-    .loop:
-        cmp byte [rdi], 0
-        je .done
-        inc rax
-        inc rdi
-        jmp .loop
-    .done:
-    ret
-
-.cleanup:
-    add rsp, 3000 
-	pop rsp
-	pop rdx
+        pop rsi
+        mov rax, SYS_WRITE
+        mov rdi, 1
+        mov rdx, 15
+        syscall
+        jmp cleanup
+        ret
+    hello_world:
+        call write
+        ret
+        db 'Pestilence by darodrig',0
+cleanup:
+    add rsp, 3000
+    pop rsp
 _end:
     xor rdi, rdi
     mov rax, 60
