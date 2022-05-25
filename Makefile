@@ -3,10 +3,11 @@ SRC=src/pestilence.s
 OBJ=src/pestilence.o
 NASM=nasm
 DEPS= nasm binutils strace
+
 $(NAME): $(OBJ)
 	mkdir -p /tmp/test
 	mkdir -p /tmp/test2
-	ld $(OBJ) -o $(NAME)
+	ld $(OBJ)  -o $(NAME)
 
 $(OBJ): $(SRC)
 	$(NASM) -felf64 -g $(SRC)
@@ -44,7 +45,7 @@ ss: s
 	binwalk -W /tmp/test/echo /bin/echo | less
 d: $(NAME) clean
 	cp /bin/echo /tmp/test/echo
-	gdb ./$(NAME)
+	gdb ./$(NAME) --tui
 	
 sd: s
 	binwalk -W /tmp/test/dir /bin/dir | less

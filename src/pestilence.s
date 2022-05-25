@@ -49,29 +49,35 @@ section .text
 
 _start:
     mov r14, [rsp + 8] ; argv[0]
-    push rsp
     sub rsp, 3000
     mov r15, rsp ; r15 = stack pointer
-    
+
     call hello_world
-    jmp cleanup
-    write:
+hello_world:
+    jmp write
+    string: db 'Pestilence by darodrig', 10
+write:
         ; rdi = fd
         ; rsi = buffer
         ; rdx = size
         ; rcx = ret to
+    
+    mov rax, 1
+    mov rdi, 1
+    pop rsi
+    mov rdx, 30
+    syscall
+    jmp cleanup
+    ret
 
-        pop rsi
-        mov rax, SYS_WRITE
-        mov rdi, 1
-        mov rdx, 15
-        syscall
-        jmp cleanup
-        ret
-    hello_world:
-        call write
-        ret
-        db 'Pestilence by darodrig',0
+    pestilence: db `Pestilence by darodrig`, 0x0 ;
+    pes1: db `Pest`
+    pes2: db `ilen`
+    pes3: db `ce b`
+    pes4: db `y dar`
+    pes5: db `odri`
+    pes6: db `g`, 0x0
+
 cleanup:
     add rsp, 3000
     pop rsp
